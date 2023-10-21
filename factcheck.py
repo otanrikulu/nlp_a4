@@ -33,6 +33,15 @@ class FactExample:
     def __repr__(self):
         return repr("fact=" + repr(self.fact) + "; label=" + repr(self.label) + "; passages=" + repr(self.passages))
 
+"""
+Helpers to speed up the entailment model.
+Pruning the vocabulary based on word overlap before running the entailment model.
+"""
+def word_overlap(sentence1: str, sentence2: str) -> float:
+    words1 = set(sentence1.lower().split())
+    words2 = set(sentence2.lower().split())
+    overlap = len(words1.intersection(words2)) / len(words1.union(words2))
+    return overlap
 
 class EntailmentModel:
     def __init__(self, model, tokenizer):
@@ -208,13 +217,15 @@ class EntailmentFactChecker(object):
         for passage in passages:
             sentences = nltk.sent_tokenize(passage['text'])
             for sentence in sentences:
-                entailment_score = self.ent_model.check_entailment(sentence, fact)
-                max_entailment_score = max(max_entailment_score, entailment_score)
+                if word_overlap(sentence, fact) > 0.1:  # Adjust the threshold as needed
+                    entailment_score = self.ent_model.check_entailment(sentence, fact)
+                    max_entailment_score = max(max_entailment_score, entailment_score)
 
         if max_entailment_score > self.threshold:
             return "S"
         else:
             return "NS"
+
 
 
 # OPTIONAL
